@@ -1,0 +1,123 @@
+--Itzel input(county_name,month_of_crash,day_of_crash) => output(accident_count,avg_arrival_time)
+-- https://console.cloud.google.com/bigquery?sq=132622511081:228961dfb170483a91a41248052cf61d
+--count accidents in san diego
+WITH accidents AS (
+  SELECT 
+    ROUND(latitude, 2) AS lat_grid,--rounded to 5 square miles
+    ROUND(longitude, 2) AS lon_grid, 
+    hour_of_arrival_at_scene, 
+    hour_of_crash,
+    minute_of_arrival_at_scene,
+    minute_of_crash
+  FROM 
+    `bigquery-public-data.nhtsa_traffic_fatalities. accident_2020`
+  WHERE 
+    county_name="SAN DIEGO (73)"
+    AND month_of_crash=5
+    AND day_of_crash=1
+  UNION ALL
+
+  SELECT 
+    ROUND(latitude, 2) AS lat_grid,--rounded to 5 square miles
+    ROUND(longitude, 2) AS lon_grid, 
+    hour_of_arrival_at_scene, 
+    hour_of_crash,
+    minute_of_arrival_at_scene,
+    minute_of_crash
+  FROM 
+    `bigquery-public-data.nhtsa_traffic_fatalities. accident_2019`
+  WHERE 
+    county_name="SAN DIEGO (73)"
+    AND month_of_crash=5
+    AND day_of_crash=1 
+  UNION ALL
+
+  SELECT 
+    ROUND(latitude, 2) AS lat_grid,--rounded to 5 square miles
+    ROUND(longitude, 2) AS lon_grid, 
+    hour_of_arrival_at_scene, 
+    hour_of_crash,
+    minute_of_arrival_at_scene,
+    minute_of_crash
+  FROM 
+    `bigquery-public-data.nhtsa_traffic_fatalities. accident_2018`
+  WHERE 
+    county_name="SAN DIEGO (73)"
+    AND month_of_crash=5
+    AND day_of_crash=1 
+  UNION ALL
+
+  SELECT 
+    ROUND(latitude, 2) AS lat_grid,--rounded to 5 square miles
+    ROUND(longitude, 2) AS lon_grid, 
+    hour_of_arrival_at_scene, 
+    hour_of_crash,
+    minute_of_arrival_at_scene,
+    minute_of_crash
+  FROM 
+    `bigquery-public-data.nhtsa_traffic_fatalities. accident_2017`
+  WHERE 
+    county_name="SAN DIEGO (73)"
+    AND month_of_crash=5
+    AND day_of_crash=1
+  UNION ALL
+
+  SELECT 
+    ROUND(latitude, 2) AS lat_grid,--rounded to 5 square miles
+    ROUND(longitude, 2) AS lon_grid, 
+    hour_of_arrival_at_scene, 
+    hour_of_crash,
+    minute_of_arrival_at_scene,
+    minute_of_crash
+  FROM 
+    `bigquery-public-data.nhtsa_traffic_fatalities. accident_2016`
+  WHERE 
+    county_name="SAN DIEGO (73)"
+    AND month_of_crash=5
+    AND day_of_crash=1
+
+),
+--select top 30 grids of accident count
+grid AS (
+  SELECT 
+    lat_grid,
+    lon_grid,
+    COUNT(*) as accident_count
+  FROM 
+    accidents
+  GROUP BY 
+    lat_grid, lon_grid
+  ORDER BY accident_count DESC
+  LIMIT 30
+),
+/*
+--show result
+SELECT 
+  lat_grid,
+  lon_grid,
+  accident_count
+FROM 
+  grid
+*/
+
+--count avg ambu arrival time in each grid
+arr_time_each_section AS (
+  SELECT
+    grid.lat_grid,
+    grid.lon_grid,
+    avg(accident_count) as count,
+    AVG(60*(hour_of_arrival_at_scene-hour_of_crash)+minute_of_arrival_at_scene-minute_of_crash)as avg_arrival_time
+  FROM     accidents,grid
+  WHERE hour_of_arrival_at_scene<24 AND hour_of_crash<24 AND minute_of_arrival_at_scene<60 AND minute_of_crash<60 AND accidents.lat_grid = grid.lat_grid AND accidents.lon_grid = grid.lon_grid
+  GROUP BY  lat_grid, lon_grid
+  ORDER BY avg(accident_count) DESC
+)
+
+-- Output
+SELECT
+  lat_grid,
+  lon_grid,
+  count,
+  avg_arrival_time
+FROM
+  arr_time_each_section;
