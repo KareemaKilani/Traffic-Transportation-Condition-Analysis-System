@@ -1,0 +1,37 @@
+SELECT accident_2016.month_of_crash_name, accident_2016.day_of_crash,accident_2016.day_of_week_name,accident_2016.county_name, 
+100*((COUNT(*) *1.0)/TC_month )AS percent_of_monthly, COUNT(*) AS crashes,
+CASE 
+   WHEN 100*((COUNT(*) *1.0)/TC_month )>=1 THEN 'HIGH DANGER' 
+   WHEN 100*((COUNT(*) *1.0)/TC_month )>0.5 AND 100*((COUNT(*) *1.0)/TC_month )<1 THEN 'MEDIUM DANGER'
+   ELSE 'LOW DANGER'
+   END AS danger_signal
+FROM `bigquery-public-data.nhtsa_traffic_fatalities. accident_2016` AS accident_2016
+JOIN(
+  SELECT month_of_crash_name, COUNT(*) AS TC_month 
+  FROM `bigquery-public-data.nhtsa_traffic_fatalities. accident_2016` AS accident_2016
+  WHERE accident_2016.state_name="California"
+  GROUP BY accident_2016.month_of_crash_name 
+  LIMIT 1000
+) AS month_t
+ON month_t.month_of_crash_name= accident_2016.month_of_crash_name
+WHERE accident_2016.state_name="California"
+GROUP BY accident_2016.month_of_crash_name , accident_2016.day_of_crash,accident_2016.day_of_week_name,accident_2016.county_name, TC_month 
+ORDER BY 
+  CASE month_of_crash_name
+    WHEN 'January' THEN 1 
+    WHEN 'February' THEN 2 
+    WHEN 'March' THEN 3 
+    WHEN 'April' THEN 4
+    WHEN 'May' THEN 5
+    WHEN 'June' THEN 6
+    WHEN 'July' THEN 7
+    WHEN 'August' THEN 8 
+    WHEN 'September' THEN 9 
+    WHEN 'October' THEN 10
+    WHEN 'November' THEN 11
+    WHEN 'December' THEN 12
+    END, 
+  day_of_crash ASC
+ LIMIT 1000
+
+
