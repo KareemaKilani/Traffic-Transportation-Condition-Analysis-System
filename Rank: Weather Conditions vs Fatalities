@@ -1,0 +1,33 @@
+WITH FatalitiesPerCrash AS (
+    SELECT 
+       county_name,
+        atmospheric_conditions_1_name AS weather_condition,
+        COUNT(*) AS total_crashes,
+        SUM(number_of_fatalities) AS total_fatalities,
+        CASE 
+            WHEN COUNT(*) > 0 THEN SUM(number_of_fatalities) / COUNT(*) 
+            ELSE 0 
+        END AS fatalities_per_crash,
+        RANK() OVER (PARTITION BY county_name ORDER BY SUM(number_of_fatalities) DESC) AS rank_within_county
+    FROM 
+        `bigquery-public-data.nhtsa_traffic_fatalities. accident_2020` AS crash_data
+    WHERE 
+        state_name = 'New York'
+        AND atmospheric_conditions_1_name != 'Clear'
+    GROUP BY 
+       county_name,
+        atmospheric_conditions_1_name
+)
+SELECT 
+   county_name,
+    weather_condition,
+    total_crashes,
+    total_fatalities,
+    fatalities_per_crash,
+    rank_within_county
+FROM 
+    FatalitiesPerCrash
+ORDER BY 
+   county_name,
+    rank_within_county
+LIMIT 200;
