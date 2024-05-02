@@ -12,7 +12,7 @@ WITH FatalitiesPerCrash AS (
     FROM 
         `bigquery-public-data.nhtsa_traffic_fatalities. accident_2020` AS crash_data
     WHERE 
-        state_name = 'New York'
+        state_name = 'California'
         AND atmospheric_conditions_1_name != 'Clear'
     GROUP BY 
        county_name,
