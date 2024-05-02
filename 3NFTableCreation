@@ -1,0 +1,92 @@
+-- Create County table
+CREATE TABLE County (
+  county_number INT PRIMARY KEY,
+  county_name VARCHAR(255) NOT NULL
+);
+
+-- Create City table
+CREATE TABLE City (
+  city_number INT PRIMARY KEY,
+  city_name VARCHAR(255) NOT NULL
+);
+
+-- Create Location table
+CREATE TABLE Location (
+  crash_id INT PRIMARY KEY,
+  national_highway_system VARCHAR(255),
+  route_signing VARCHAR(255),
+  trafficway_identifier VARCHAR(255),
+  trafficway_identifier_2 VARCHAR(255),
+  land_use VARCHAR(255),
+  functional_system VARCHAR(255),
+  ownership VARCHAR(255),
+  milepoint VARCHAR(255),
+  latitude DECIMAL(10,8),
+  longitude DECIMAL(11,8),
+  special_jurisdiction VARCHAR(255),
+  FOREIGN KEY (crash_id) REFERENCES Crash(consecutive_number)
+);
+
+-- Create Crash_Details table
+CREATE TABLE Crash_Details (
+  crash_id INT PRIMARY KEY,
+  first_harmful_event VARCHAR(255),
+  manner_of_collision VARCHAR(255),
+  relation_to_junction_within_interchange_area VARCHAR(255),
+  relation_to_junction_specific_location VARCHAR(255),
+  type_of_intersection VARCHAR(255),
+  work_zone VARCHAR(255),
+  relation_to_trafficway VARCHAR(255),
+  light_condition VARCHAR(255),
+  atmospheric_conditions_1 VARCHAR(255),
+  atmospheric_conditions_2 VARCHAR(255),
+  rail_grade_crossing_identifier VARCHAR(255),
+  FOREIGN KEY (crash_id) REFERENCES Crash(consecutive_number)
+);
+
+-- Create Notification table
+CREATE TABLE Notification (
+  crash_id INT PRIMARY KEY,
+  hour_of_notification INT,
+  minute_of_notification INT,
+  FOREIGN KEY (crash_id) REFERENCES Crash(consecutive_number)
+);
+
+-- Create Arrival table
+CREATE TABLE Arrival (
+  crash_id INT PRIMARY KEY,
+  hour_of_arrival_at_scene INT,
+  minute_of_arrival_at_scene INT,
+  hour_of_ems_arrival_at_hospital INT,
+  minute_of_ems_arrival_at_hospital INT,
+  FOREIGN KEY (crash_id) REFERENCES Crash(consecutive_number)
+);
+
+-- Create Vehicles table
+CREATE TABLE Vehicles (
+  crash_id INT PRIMARY KEY,
+  number_of_motor_vehicles_in_transport_mvit INT,
+  number_of_parked_working_vehicles INT,
+  number_of_forms_submitted_for_persons_not_in_motor_vehicles INT,
+  number_of_forms_submitted_for_persons_in_motor_vehicles INT,
+  number_of_persons_in_motor_vehicles_in_transport_mvit INT,
+  FOREIGN KEY (crash_id) REFERENCES Crash(consecutive_number)
+);
+
+-- Create Crash table (assuming consecutive_number is a unique identifier)
+CREATE TABLE Crash (
+  consecutive_number VARCHAR(255) PRIMARY KEY,
+  state_number INT,
+  state_name VARCHAR(255),
+  county_number INT,
+  FOREIGN KEY (county_number) REFERENCES County(county_number),
+  city_number INT,
+  FOREIGN KEY (city_number) REFERENCES City(city_number),
+  day_of_crash INT,
+  month_of_crash INT,
+  year_of_crash INT,
+  timestamp_of_crash DATETIME,
+  number_of_fatalities INT,
+  number_of_drunk_drivers INT,
+  -- Add other crash related data here
+);
