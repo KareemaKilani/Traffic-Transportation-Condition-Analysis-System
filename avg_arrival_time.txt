@@ -1,31 +1,75 @@
 --Itzel input(county_name,month_of_crash,day_of_crash) => output(accident_count,avg_arrival_time)
--- https://console.cloud.google.com/bigquery?sq=132622511081:9e45e3a463584305a9e310cbaeb2cddb
-SELECT
-  lat_grid,
-  lon_grid,
-  AVG(accident_count) AS count,
-  AVG(60*(hour_of_arrival_at_scene-hour_of_crash)+minute_of_arrival_at_scene-minute_of_crash) AS avg_arrival_time
-FROM (
+--optimized version
+-- https://console.cloud.google.com/bigquery?sq=132622511081:77497f7800f647d6b659df38c13ebfc1
+-- create indexing table
+CREATE OR REPLACE TABLE `cmpe180b.NHTSA.myaccidents`
+PARTITION BY crash_date
+CLUSTER BY lat_grid, lon_grid, county_name AS(
+SELECT 
+  CAST(ROUND(latitude, 2) AS STRING) AS lat_grid, --rounded to 5 square miles
+  CAST(ROUND(longitude, 2) AS STRING) AS lon_grid,
+  county_name,
+  day_of_week,month_of_crash,day_of_crash,
+  DATE_ADD(DATE "2024-05-05", INTERVAL day_of_week DAY) as crash_date,--create a fake date value to represent days in a week
+  hour_of_arrival_at_scene,hour_of_crash,minute_of_arrival_at_scene,minute_of_crash
+FROM 
+  `bigquery-public-data.nhtsa_traffic_fatalities. accident_*`
+WHERE 
+  _TABLE_SUFFIX BETWEEN '2016' AND '2020'
+  AND hour_of_arrival_at_scene<24 AND hour_of_crash<24 AND minute_of_arrival_at_scene<60 AND minute_of_crash<60
+);
+--query
+WITH arr_time_LA AS (
   SELECT
-    ROUND(latitude, 2) AS lat_grid,
-    ROUND(longitude, 2) AS lon_grid, 
+    lat_grid, lon_grid,
     COUNT(*) as accident_count,
-    hour_of_arrival_at_scene,
-    hour_of_crash,
-    minute_of_arrival_at_scene,
-    minute_of_crash
+    AVG(60*(hour_of_arrival_at_scene-hour_of_crash)+minute_of_arrival_at_scene-minute_of_crash)as avg_arrival_time
+  FROM 
+    `cmpe180b.NHTSA.myaccidents`
+  WHERE 
+    county_name="LOS ANGELES (37)"
+    AND crash_date=DATE_ADD(DATE "2024-05-05", INTERVAL 1 DAY)--here 1 means Monday
+  GROUP BY  lat_grid, lon_grid
+  ORDER BY accident_count DESC
+  LIMIT 30
+)
+SELECT * FROM arr_time_LA;
+
+
+--unoptimized
+--https://console.cloud.google.com/bigquery?sq=132622511081:f076dde982524c01bddc2037db9738a8
+--select features and stored in accidents
+CREATE OR REPLACE TABLE `cmpe180b.NHTSA.myaccidents0` AS (
+  SELECT 
+    ROUND(latitude, 2) AS lat_grid,--rounded to 5 square miles
+    ROUND(longitude, 2) AS lon_grid, 
+    county_name,
+    day_of_week,month_of_crash,day_of_crash,
+    hour_of_arrival_at_scene, hour_of_crash,
+    minute_of_arrival_at_scene, minute_of_crash
   FROM 
     `bigquery-public-data.nhtsa_traffic_fatalities. accident_*`
   WHERE
     _TABLE_SUFFIX BETWEEN '2016' AND '2020'
-    AND county_name="SAN DIEGO (73)"
-    AND month_of_crash=5
-    AND day_of_crash=1
-  GROUP BY 
-    lat_grid, lon_grid, hour_of_arrival_at_scene, hour_of_crash, minute_of_arrival_at_scene, minute_of_crash
-) AS accidents
-GROUP BY 
-  lat_grid, lon_grid
-ORDER BY 
-  count DESC
-LIMIT 30;
+    AND hour_of_arrival_at_scene<24 AND hour_of_crash<24 AND minute_of_arrival_at_scene<60 AND minute_of_crash<60
+    --_TABLE_SUFFIX="2020"
+);
+
+--count avg ambu arrival time in each grid of the county
+WITH arr_time_LA AS (
+  SELECT
+    lat_grid,lon_grid,
+    COUNT(*) as accident_count,
+    AVG(60*(hour_of_arrival_at_scene-hour_of_crash)+minute_of_arrival_at_scene-minute_of_crash)as avg_arrival_time
+  FROM     cmpe180b.NHTSA.myaccidents0
+  WHERE 
+    county_name="LOS ANGELES (37)"
+    AND day_of_week =1
+    --AND month_of_crash = 1
+    --AND day_of_crash = 1
+  GROUP BY  lat_grid, lon_grid
+  ORDER BY accident_count DESC
+  LIMIT 30
+)
+
+SELECT * FROM arr_time_LA;
