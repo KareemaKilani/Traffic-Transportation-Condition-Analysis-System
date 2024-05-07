@@ -27,6 +27,31 @@ SELECT
     rank_within_county
 FROM 
     FatalitiesPerCrash
+
+
+
+
+-- Without Optmization
+SELECT 
+    county_name,
+    atmospheric_conditions_1_name AS weather_condition,
+    COUNT(*) AS total_crashes,
+    SUM(number_of_fatalities) AS total_fatalities,
+    IF(COUNT(*) > 0, SUM(number_of_fatalities) / COUNT(*), 0) AS fatalities_per_crash,
+    RANK() OVER (PARTITION BY county_name ORDER BY SUM(number_of_fatalities) DESC) AS rank_within_county
+FROM 
+    `bigquery-public-data.nhtsa_traffic_fatalities. accident_2020`
+WHERE 
+    state_name = 'California'
+    AND atmospheric_conditions_1_name != 'Clear'
+GROUP BY 
+    county_name,
+    atmospheric_conditions_1_name
+ORDER BY 
+    county_name,
+    rank_within_county
+
+
 ORDER BY 
    county_name,
     rank_within_county
